@@ -16,7 +16,7 @@ String sendDataChatID;
 bool sendData = true;
 
 ImuArduino imu;
-MicArduino mic;
+MicArduino mic(MIC_PIN);
 Buffer buffer(100);
 
 void connectWiFi()
@@ -78,6 +78,7 @@ void newMsg(FB_msg &msg)
 
 void setup()
 {
+	Serial.begin(115200);
 	connectWiFi();
 	delay(1000);
 	bot.setChatID("");
@@ -88,7 +89,7 @@ void setup()
 }
 
 String serializeCsv(BufferItems &items) {
-	String s = "timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ,mic\n";
+	String s = "timestamp,accX(m/s^2),accY,accZ,gyroX(rad/s),gyroY,gyroZ,mic\n";
 	for (int i = 0; i < items.size; i++) {
 		BufferItem item = items.items_[i];
 		s += item.timestamp + ",";
@@ -111,7 +112,7 @@ void sendItems(BufferItems &items) {
 	String str = serializeCsv(items);
 	uint8_t *s = (uint8_t*)str.c_str();
 	uint8_t status = bot.sendFile(s, str.length(), FB_DOC, millis() + ".csv");
-	
+
 	if (status != 0) {
 		Serial.println("Got fail status" + status);
 	}
