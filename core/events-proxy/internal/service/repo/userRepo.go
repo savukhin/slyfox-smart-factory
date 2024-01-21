@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -33,15 +34,17 @@ func (repo *userRepo) GetByUsername(ctx context.Context, username string) (recor
 	sql, args, err := statementBuilder.
 		Select("username", "aes_key", "totp_key").
 		From("users").
+		Where(squirrel.Eq{"username": username}).
 		ToSql()
 
 	if err != nil {
 		return
 	}
 
-	row := repo.db.QueryRowxContext(ctx, sql, args)
+	row := repo.db.QueryRowxContext(ctx, sql, args...)
 	if row.Err() != nil {
 		err = row.Err()
+		fmt.Println("err", err)
 		return
 	}
 

@@ -2,12 +2,13 @@ package service
 
 import (
 	"context"
-	"crypto/aes"
 	"errors"
 	"eventsproxy/internal/service/producer"
 	"eventsproxy/internal/service/repo"
+	"fmt"
 
 	"github.com/pquerna/otp/totp"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -33,19 +34,17 @@ func NewProxyService(userRepo repo.UserRepo, natsProducer producer.NatsProducer)
 }
 
 func (svc *proxyService) Auth(ctx context.Context, username, hashedPassword string) error {
+	log.Info().Str("username", username).Str("hashedPassword", hashedPassword).Msg("Service Auth")
 	user, err := svc.userRepo.GetByUsername(ctx, username)
 	if err != nil {
 		return err
 	}
 
-	c, err := aes.NewCipher([]byte(user.AesKey))
+	password, err := decryptMessage([]byte(user.AesKey), hashedPassword)
 	if err != nil {
 		return err
 	}
-
-	decrypted := make([]byte, len(hashedPassword))
-	c.Decrypt(decrypted, []byte(hashedPassword))
-	password := string(decrypted[:otpLength])
+	fmt.Println("password", password)
 
 	isValid := totp.Validate(password, user.TotpKey)
 	if !isValid {

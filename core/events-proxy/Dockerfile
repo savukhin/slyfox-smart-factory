@@ -6,9 +6,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY *.go ./
-
-RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping
+COPY . ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o /main cmd/main.go
 
 # Run the tests in the container
 FROM build-stage AS run-test-stage
@@ -19,10 +18,11 @@ FROM alpine AS build-release-stage
 
 WORKDIR /
 
-COPY --from=build-stage /docker-gs-ping /docker-gs-ping
+COPY --from=build-stage /main /main
+COPY --from=build-stage /app/migrations/ ./migrations
 
-EXPOSE 8080
+# EXPOSE 8080
+# EXPOSE 8080
+EXPOSE 1883
 
-USER nonroot:nonroot
-
-ENTRYPOINT ["/docker-gs-ping"]
+ENTRYPOINT ["/main"]

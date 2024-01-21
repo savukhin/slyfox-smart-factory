@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"eventsproxy/internal/config"
 	"eventsproxy/internal/service"
 	"log"
 	"strings"
@@ -10,12 +11,6 @@ import (
 	"github.com/mochi-mqtt/server/v2/listeners"
 )
 
-type MqttServerConfig struct {
-	Id   string
-	Host string
-	Port string
-}
-
 type MqttServer struct {
 	notify     chan error
 	ctx        context.Context
@@ -23,15 +18,7 @@ type MqttServer struct {
 	mqttServer *mqtt.Server
 }
 
-func NewMqttServerConfig() MqttServerConfig {
-	return MqttServerConfig{
-		Id:   "t1",
-		Host: "localhost",
-		Port: "1883",
-	}
-}
-
-func NewMqttServer(cfg MqttServerConfig, svc service.ProxyService) (srv MqttServer, err error) {
+func NewMqttServer(cfg config.MqttServerConfig, svc service.ProxyService) (srv MqttServer, err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	server := mqtt.New(nil)
 
@@ -87,7 +74,5 @@ func (srv MqttServer) Notify() chan error {
 }
 
 func (srv MqttServer) Close() {
-	// close(srv.stop)
 	srv.cancel()
-
 }

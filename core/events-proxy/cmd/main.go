@@ -11,26 +11,37 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-)
 
-const (
-	HOST = "localhost"
-	PORT = "1883"
-	TYPE = "tcp"
+	"github.com/pressly/goose"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	cfg := config.ReadConfig()
-
-	db, err := connections.CreatePostgres(cfg.Postgres)
+	cfg, err := config.ReadConfig()
 	if err != nil {
 		panic(err)
 	}
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Info().Any("cfg", cfg).Msg("Starting service...")
+
+	db, err := connections.CreatePostgres(cfg.Database)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot connect database")
+		return
+	}
 	defer db.Close()
+
+	if err = goose.Up(db.DB, cfg.Database.MigrationsFolder); err != nil {
+		log.Fatal().Err(err).Msg("Cannot migrate")
+		return
+	}
 
 	nc, js, err := connections.CreateNatsJetstream(cfg.Nats)
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("Cannot create nats jetstream")
+		return
 	}
 	defer nc.Close()
 
@@ -38,16 +49,19 @@ func main() {
 	proxyRepo := repo.NewUserRepo(db)
 	proxySvc := service.NewProxyService(&proxyRepo, &producer)
 
-	serverCfg := server.NewMqttServerConfig()
-	server, err := server.NewMqttServer(serverCfg, &proxySvc)
+	server, err := server.NewMqttServer(cfg.MqttServer, &proxySvc)
 
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("Cannot create mqtt server")
+		return
 	}
+
 	err = server.Run()
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("Cannot run mqtt server")
+		return
 	}
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
@@ -57,4 +71,7 @@ func main() {
 	case err := <-server.Notify():
 		fmt.Println(err)
 	}
+
+	server.Close()
+	log.Info().Msg("Stopped app")
 }

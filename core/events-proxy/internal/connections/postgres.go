@@ -30,7 +30,7 @@ func CreatePostgres(cfg config.PostgresConfig) (*sqlx.DB, error) {
 		cfg.SslMode,
 	)
 
-	db, err := sqlx.Open("pgx", dsn)
+	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}
