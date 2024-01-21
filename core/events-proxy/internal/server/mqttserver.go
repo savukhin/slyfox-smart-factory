@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"eventsproxy/internal/config"
 	"eventsproxy/internal/service"
 	"log"
@@ -9,6 +10,11 @@ import (
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/listeners"
+)
+
+var (
+	ErrStopped     = errors.New("server is already stopped")
+	ErrUnauthorize = errors.New("failed to auth")
 )
 
 type MqttServer struct {

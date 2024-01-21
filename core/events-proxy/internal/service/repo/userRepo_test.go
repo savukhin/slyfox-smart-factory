@@ -21,6 +21,8 @@ func setupUserRepo(t *testing.T) (userRepo, sqlmock.Sqlmock) {
 }
 
 func Test_userRepo_GetByUsername(t *testing.T) {
+	t.Parallel()
+
 	repo, mDB := setupUserRepo(t)
 
 	username := "username1"
@@ -35,4 +37,6 @@ func Test_userRepo_GetByUsername(t *testing.T) {
 	require.EqualValues(t, username, record.Username)
 	require.EqualValues(t, aesKey, record.AesKey)
 	require.EqualValues(t, totpKey, record.TotpKey)
+
+	mDB.ExpectationsWereMet()
 }

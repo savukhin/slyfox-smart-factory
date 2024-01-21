@@ -65,13 +65,13 @@ func mock() {
 
 	quit := make(<-chan struct{})
 	for i := 0; i < 2; i++ {
-		topic := "sometopic" + string(i)
+		topic := "sometopic" + fmt.Sprint(i)
 		for i, c := range topic {
 			if c == 0 {
 				fmt.Printf("i(%v) symb is 0\n", i)
 			}
 		}
-		err = client.Publish(quit, []byte("some message "+string(i)), topic[:len(topic)-1])
+		err = client.Publish(quit, []byte("some message "+fmt.Sprint(i)), topic[:len(topic)-1])
 		fmt.Println("publish err", err)
 		time.Sleep(200 * time.Millisecond)
 	}

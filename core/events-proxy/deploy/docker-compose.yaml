@@ -1,0 +1,118 @@
+version: "3.9"
+services:
+  events-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # - MQTT_SERVER_HOST=localhost
+      - MQTT_SERVER_HOST=0.0.0.0
+      - NATS_URLS=nats://nats1:6222,nats://nats2:6222,nats://nats3:6222
+      # - NATS_URLS=nats://nats1:6222,nats://nats2:6222,nats://nats3:6222
+    networks:
+      - slyfox
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats1:
+        condition: service_healthy
+      nats2:
+        condition: service_healthy
+      nats3:
+        condition: service_healthy
+    ports:
+      - 1883:1883
+      # - 8080:8080 # REST
+      # - 8082:8082 # gRPC
+      # - 9100:9100 # Metrics prometheus
+      # - 8000:8000 # Status prometheus
+      # - 40000:40000 # Debug port
+    # healthcheck:
+    #   test: curl --fail http://localhost:8000/live || exit 1
+    #   interval: 10s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 20s
+    volumes:
+      - ../migrations:/root/migrations
+      - ../config.yml:/root/config.yml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.events-proxy.rule=Host(`events-proxy.localhost`)"
+      - "traefik.http.routers.events-proxy.entrypoints=mqtt"
+ 
+
+  nats1:
+    healthcheck:
+      test: echo $(wget --server-response http://nats1:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    image: nats:2.10.9-alpine3.19
+    ports:
+      - "8222:8222"
+    command: "--name NATS1 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://nats1:6222,nats://nats2:6222,nats://nats3:6222 --http_port 8222"
+    networks:
+      - "slyfox"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nats1.rule=Host(`nats1.localhost`)"
+      - "traefik.http.routers.nats1.entrypoints=web"
+      - traefik.http.routers.nats1.service=nats1
+      - traefik.http.services.nats1.loadbalancer.server.port=8222
+  nats2:
+    healthcheck:
+      test: echo $(wget --server-response http://nats2:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    image: nats:2.10.9-alpine3.19
+    ports:
+      - "8223:8222"
+    command: "--name NATS2 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://nats1:6222,nats://nats2:6222,nats://nats3:6222 --http_port 8222"
+    networks:
+      - "slyfox"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nats1.rule=Host(`nats2.localhost`)"
+      - "traefik.http.routers.nats1.entrypoints=web"
+      - traefik.http.routers.nats1.service=nats1
+      - traefik.http.services.nats1.loadbalancer.server.port=8222
+  nats3:
+    healthcheck:
+      test: echo $(wget --server-response http://nats3:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    image: nats:2.10.9-alpine3.19
+    ports:
+      - "8224:8222"
+    command: "--name NATS3 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:6222 --routes nats://nats1:6222,nats://nats2:6222,nats://nats3:6222 --http_port 8222"
+    networks:
+      - "slyfox"
+
+  postgres:
+    image: postgres:latest
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: events_proxy
+    networks:
+      - slyfox
+
+networks:
+  slyfox:
+    driver: bridge
+    external: true

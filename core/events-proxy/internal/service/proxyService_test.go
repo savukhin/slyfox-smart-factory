@@ -25,6 +25,8 @@ func setupProxyService(t *testing.T) (proxyService, mock_repo.MockUserRepo, mock
 }
 
 func Test_proxyService_Auth(t *testing.T) {
+	t.Parallel()
+
 	svc, mockRepo, _ := setupProxyService(t)
 	username := "username1"
 	aesKey := strings.Repeat("a", 32)
@@ -51,4 +53,5 @@ func Test_proxyService_Auth(t *testing.T) {
 
 	err = svc.Auth(context.Background(), username, string(dst))
 	require.NoError(t, err)
+
 }

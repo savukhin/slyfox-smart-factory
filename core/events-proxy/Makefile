@@ -1,0 +1,3 @@
+test:
+	go test -v -race -timeout 30s -parallel 2 -coverprofile cover.out ./...
+	go tool cover -func cover.out | grep total | awk '{print $$3}'
