@@ -28,10 +28,17 @@ type MqttServerConfig struct {
 	Host string `env:"HOST" yaml:"host" default:"localhost"`
 	Port string `env:"PORT" yaml:"port" default:"1883"`
 }
+
+type JwtConfig struct {
+	Secret      []byte `env:"JWT" yaml:"secret" required:"true"`
+	DurationMin int    `env:"DURATION_MIN" yaml:"durationMin" default:"120"`
+}
+
 type Config struct {
 	Nats       NatsConfig       `env:"NATS" yaml:"nats"`
 	Database   PostgresConfig   `env:"DATABASE" yaml:"database"`
 	MqttServer MqttServerConfig `env:"MQTT_SERVER" yaml:"mqttServer"`
+	Jwt        JwtConfig        `env:"JWT" yaml:"jwt"`
 }
 
 func ReadConfig() (cfg Config, err error) {

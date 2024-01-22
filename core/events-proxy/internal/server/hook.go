@@ -3,8 +3,8 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"eventsproxy/internal/service"
-	"fmt"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
@@ -41,25 +41,54 @@ func (hook *Hook) Provides(b byte) bool {
 	}, []byte{b})
 }
 
+func (hook *Hook) authCredentials(pk packets.Packet) (string, error) {
+	username := pk.Connect.Username
+	hashedPassword := pk.Connect.Password
+	token, err := hook.svc.Auth(context.Background(), string(username), string(hashedPassword))
+	if err != nil {
+		return "", ErrUnauthorize
+	}
+	return token, nil
+}
+
 func (hook *Hook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
 	log.Info().Msg("Received OnConnect")
-	return nil
+	_, err := hook.authCredentials(pk)
+	if err != nil {
+		log.Err(err).Msg("OnConnect error")
+	}
+	return err
 }
 
 func (hook *Hook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) bool {
 	log.Info().Msg("Received OnConnectAuthenticate")
-	fmt.Printf("OnConnectAuthenticate cl = %v pk = %v\n", cl, pk)
-	username := pk.Connect.Username
-	hashedPassword := pk.Connect.Password
-	err := hook.svc.Auth(context.Background(), string(username), string(hashedPassword))
-	// fmt.Printf("Auth result cl = %v pk = %v\n", cl, pk)
-	log.Info().Err(err).Msg("Auth result")
+	_, err := hook.authCredentials(pk)
+	if err != nil {
+		log.Info().Err(err).Msg("OnConnectAuthenticate Auth error")
+	}
 	return err != nil
+}
+
+type MessageToken struct {
+	AuthToken string `json:"token"`
 }
 
 func (hook *Hook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
 	log.Info().Msg("Received OnPublish")
-	fmt.Printf("OnPublish cl = %v pk = %v\n", cl, pk)
+	var message MessageToken
+	err := json.Unmarshal(pk.Payload, &message)
+	if err != nil {
+		log.Err(err).Msg("unmarshalling OnPublish json error")
+		return pk, ErrUnauthorize
+	}
+
+	ctx := context.Background()
+	_, err = hook.svc.VerifyToken(ctx, message.AuthToken)
+	if err != nil {
+		log.Err(err).Msg("verifying OnPublish token error")
+		return pk, ErrUnauthorize
+	}
+
 	hook.svc.Publish(context.Background(), pk.TopicName, string(pk.Payload))
 	return pk, nil
 }
@@ -83,6 +112,5 @@ func (h *Hook) OnUnsubscribe(cl *mqtt.Client, pk packets.Packet) packets.Packet 
 
 // OnACLCheck returns true/allowed for all checks.
 func (h *Hook) OnACLCheck(cl *mqtt.Client, topic string, write bool) bool {
-	log.Info().Msg("Received OnACLCheck")
 	return true
 }

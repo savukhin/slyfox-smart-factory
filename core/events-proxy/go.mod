@@ -8,7 +8,9 @@ require (
 	github.com/cristalhq/aconfig v0.18.5
 	github.com/cristalhq/aconfig/aconfigyaml v0.17.1
 	github.com/eclipse/paho.mqtt.golang v1.4.3
+	github.com/floatdrop/2q v0.1.1
 	github.com/go-mqtt/mqtt v0.0.0-20210702165922-b33ea0451b0b
+	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
 	github.com/mochi-mqtt/server/v2 v2.4.5
@@ -21,8 +23,11 @@ require (
 )
 
 require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/floatdrop/fifo v0.1.1 // indirect
+	github.com/floatdrop/lru v1.2.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect

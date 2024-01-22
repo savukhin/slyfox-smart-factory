@@ -66,3 +66,17 @@ func (mr *MockProxyServiceMockRecorder) Publish(arg0, arg1, arg2 any) *gomock.Ca
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockProxyService)(nil).Publish), arg0, arg1, arg2)
 }
+
+// VerifyToken mocks base method.
+func (m *MockProxyService) VerifyToken(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyToken", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// VerifyToken indicates an expected call of VerifyToken.
+func (mr *MockProxyServiceMockRecorder) VerifyToken(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken", reflect.TypeOf((*MockProxyService)(nil).VerifyToken), arg0, arg1)
+}

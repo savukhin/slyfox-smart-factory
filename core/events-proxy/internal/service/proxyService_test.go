@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
+	"eventsproxy/internal/config"
+	"eventsproxy/internal/domain"
 	mock_producer "eventsproxy/internal/service/producer/mocks"
-	"eventsproxy/internal/service/repo"
 	mock_repo "eventsproxy/internal/service/repo/mocks"
 	"fmt"
 	"strings"
@@ -19,7 +20,11 @@ func setupProxyService(t *testing.T) (proxyService, mock_repo.MockUserRepo, mock
 	ctrl := gomock.NewController(t)
 	mockRepo := mock_repo.NewMockUserRepo(ctrl)
 	mockProducer := mock_producer.NewMockNatsProducer(ctrl)
-	svc := NewProxyService(mockRepo, mockProducer)
+	cfg := config.JwtConfig{
+		Secret:      []byte("somesecret"),
+		DurationMin: 10,
+	}
+	svc := NewProxyService(mockRepo, mockProducer, cfg)
 
 	return svc, *mockRepo, *mockProducer
 }
@@ -44,14 +49,14 @@ func Test_proxyService_Auth(t *testing.T) {
 	dst, err := encryptMessage([]byte(aesKey), src)
 	require.NoError(t, err)
 
-	user := repo.UserRecord{
+	user := domain.User{
 		Username: username,
 		AesKey:   aesKey,
 		TotpKey:  totpKey,
 	}
 	mockRepo.EXPECT().GetByUsername(gomock.Any(), username).Return(user, nil)
 
-	err = svc.Auth(context.Background(), username, string(dst))
+	_, err = svc.Auth(context.Background(), username, string(dst))
 	require.NoError(t, err)
 
 }

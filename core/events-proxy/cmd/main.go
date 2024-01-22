@@ -47,7 +47,7 @@ func main() {
 
 	producer := producer.NewNastProducer(js)
 	proxyRepo := repo.NewUserRepo(db)
-	proxySvc := service.NewProxyService(&proxyRepo, &producer)
+	proxySvc := service.NewProxyService(&proxyRepo, &producer, cfg.Jwt)
 
 	server, err := server.NewMqttServer(cfg.MqttServer, &proxySvc)
 

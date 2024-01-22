@@ -11,7 +11,7 @@ package mock_repo
 
 import (
 	context "context"
-	repo "eventsproxy/internal/service/repo"
+	domain "eventsproxy/internal/domain"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -41,10 +41,10 @@ func (m *MockUserRepo) EXPECT() *MockUserRepoMockRecorder {
 }
 
 // GetByUsername mocks base method.
-func (m *MockUserRepo) GetByUsername(arg0 context.Context, arg1 string) (repo.UserRecord, error) {
+func (m *MockUserRepo) GetByUsername(arg0 context.Context, arg1 string) (domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByUsername", arg0, arg1)
-	ret0, _ := ret[0].(repo.UserRecord)
+	ret0, _ := ret[0].(domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

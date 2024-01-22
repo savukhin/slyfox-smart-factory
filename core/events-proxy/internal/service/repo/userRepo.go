@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"eventsproxy/internal/domain"
 	"fmt"
 
 	"github.com/Masterminds/squirrel"
@@ -10,14 +11,8 @@ import (
 
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
-type UserRecord struct {
-	Username string `db:"username"`
-	TotpKey  string `db:"totp_key"`
-	AesKey   string `db:"aes_key"`
-}
-
 type UserRepo interface {
-	GetByUsername(ctx context.Context, username string) (UserRecord, error)
+	GetByUsername(ctx context.Context, username string) (domain.User, error)
 }
 
 type userRepo struct {
@@ -30,7 +25,7 @@ func NewUserRepo(db *sqlx.DB) userRepo {
 	}
 }
 
-func (repo *userRepo) GetByUsername(ctx context.Context, username string) (record UserRecord, err error) {
+func (repo *userRepo) GetByUsername(ctx context.Context, username string) (record domain.User, err error) {
 	sql, args, err := statementBuilder.
 		Select("username", "aes_key", "totp_key").
 		From("users").
