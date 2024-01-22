@@ -49,16 +49,26 @@ func main() {
 	proxyRepo := repo.NewUserRepo(db)
 	proxySvc := service.NewProxyService(&proxyRepo, &producer, cfg.Jwt)
 
-	server, err := server.NewMqttServer(cfg.MqttServer, &proxySvc)
+	mqttServer, err := server.NewMqttServer(cfg.MqttServer, &proxySvc)
+
+	metricsServer := server.NewMetricsServer(cfg.Metrics)
+	statusServer, isReady := server.NewStatusServer(cfg.Status, cfg.Project)
+	httpServer := server.NewHttpServerMux(isReady, statusServer, metricsServer)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Cannot create mqtt server")
 		return
 	}
 
-	err = server.Run()
+	err = mqttServer.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Cannot run mqtt server")
+		return
+	}
+
+	err = httpServer.Run()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot run http server")
 		return
 	}
 
@@ -68,10 +78,13 @@ func main() {
 	select {
 	case s := <-interrupt:
 		fmt.Println("app - Run - signal: " + s.String())
-	case err := <-server.Notify():
+	case err := <-mqttServer.Notify():
+		fmt.Println(err)
+	case err := <-httpServer.Notify():
 		fmt.Println(err)
 	}
 
-	server.Close()
+	mqttServer.Close()
+	httpServer.Close()
 	log.Info().Msg("Stopped app")
 }

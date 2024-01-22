@@ -8,7 +8,31 @@ import (
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	totalOnConnect = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "events_proxy_total_on_connect",
+		Help: "Total number of OnConnect messages",
+	})
+
+	totalOnConnectAuthenticate = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "events_proxy_total_on_connect_authenticate",
+		Help: "Total number of OnConnectAuthenticate messages",
+	})
+
+	totalOnPublish = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "events_proxy_total_on_publish",
+		Help: "Total number of OnPublish messages",
+	})
+
+	totalOnDisconnect = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "events_proxy_total_on_disconnect",
+		Help: "Total number of OnDisconnect messages",
+	})
 )
 
 type Hook struct {
@@ -52,6 +76,7 @@ func (hook *Hook) authCredentials(pk packets.Packet) (string, error) {
 }
 
 func (hook *Hook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
+	totalOnConnect.Inc()
 	log.Info().Msg("Received OnConnect")
 	_, err := hook.authCredentials(pk)
 	if err != nil {
@@ -61,6 +86,7 @@ func (hook *Hook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
 }
 
 func (hook *Hook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) bool {
+	totalOnConnectAuthenticate.Inc()
 	log.Info().Msg("Received OnConnectAuthenticate")
 	_, err := hook.authCredentials(pk)
 	if err != nil {
@@ -74,6 +100,7 @@ type MessageToken struct {
 }
 
 func (hook *Hook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
+	totalOnPublish.Inc()
 	log.Info().Msg("Received OnPublish")
 	var message MessageToken
 	err := json.Unmarshal(pk.Payload, &message)
@@ -94,6 +121,7 @@ func (hook *Hook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.Packet,
 }
 
 func (h *Hook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
+	totalOnDisconnect.Inc()
 }
 
 // OnPacketRead is called when a packet is received.

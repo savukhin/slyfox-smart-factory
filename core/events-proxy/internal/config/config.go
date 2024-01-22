@@ -5,6 +5,10 @@ import (
 	"github.com/cristalhq/aconfig/aconfigyaml"
 )
 
+type ProjectConfig struct {
+	Version string `env:"VERSION" yaml:"version" default:"v1"`
+}
+
 type NatsConfig struct {
 	Urls string `env:"URLS" yaml:"urls" default:"nats://nats:4333"`
 }
@@ -25,20 +29,36 @@ type PostgresConfig struct {
 
 type MqttServerConfig struct {
 	Id   string `env:"ID" yaml:"id" default:"t1"`
-	Host string `env:"HOST" yaml:"host" default:"localhost"`
+	Host string `env:"HOST" yaml:"host" default:"0.0.0.0"`
 	Port string `env:"PORT" yaml:"port" default:"1883"`
 }
 
 type JwtConfig struct {
-	Secret      []byte `env:"JWT" yaml:"secret" required:"true"`
+	Secret      []byte `env:"SECRET" yaml:"secret" required:"true"`
 	DurationMin int    `env:"DURATION_MIN" yaml:"durationMin" default:"120"`
 }
 
+type MetricsServerConfig struct {
+	Host string `env:"HOST" yaml:"host" default:"0.0.0.0"`
+	Port int    `env:"PORT" yaml:"port" default:"9090"`
+	Path string `env:"PATH" yaml:"path" default:"/metrics"`
+}
+
+type StatusServerConfig struct {
+	Host           string `env:"HOST" yaml:"host" default:"0.0.0.0"`
+	Port           int    `env:"PORT" yaml:"port" default:"8000"`
+	LivelinessPath string `env:"LIVELINESS_PATH" yaml:"path" default:"/live"`
+	ReadinessPath  string `env:"READINESS_PATH" yaml:"path" default:"/ready"`
+}
+
 type Config struct {
-	Nats       NatsConfig       `env:"NATS" yaml:"nats"`
-	Database   PostgresConfig   `env:"DATABASE" yaml:"database"`
-	MqttServer MqttServerConfig `env:"MQTT_SERVER" yaml:"mqttServer"`
-	Jwt        JwtConfig        `env:"JWT" yaml:"jwt"`
+	Project    ProjectConfig       `env:"PROJECT" yaml:"project"`
+	Nats       NatsConfig          `env:"NATS" yaml:"nats"`
+	Database   PostgresConfig      `env:"DATABASE" yaml:"database"`
+	MqttServer MqttServerConfig    `env:"MQTT_SERVER" yaml:"mqttServer"`
+	Jwt        JwtConfig           `env:"JWT" yaml:"jwt"`
+	Metrics    MetricsServerConfig `env:"METRICS" yaml:"metrics"`
+	Status     StatusServerConfig  `env:"STATUS" yaml:"statust"`
 }
 
 func ReadConfig() (cfg Config, err error) {
