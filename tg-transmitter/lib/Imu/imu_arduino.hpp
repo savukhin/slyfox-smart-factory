@@ -14,12 +14,12 @@ public:
     };
 
     ImuData GetData() override {
-        Vector3_64 acc{
+        Vector3_float acc{
             device.getAccelX_mss(),
             device.getAccelY_mss(),
             device.getAccelZ_mss()
         };
-        Vector3_64 gyro{
+        Vector3_float gyro{
             device.getGyroX_rads(),
             device.getGyroX_rads(),
             device.getGyroX_rads()

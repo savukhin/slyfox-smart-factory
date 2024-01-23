@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "defines.hpp"
 #include <FastBot.h>
+#include <set>
 
 #include "imu_arduino.hpp"
 #include "mic_arduino.hpp"
@@ -12,8 +13,7 @@ unsigned long time_notconnected = 0;
 unsigned long time_connected = 0;
 uint32_t startUnix;
 uint32_t startUnixMillis;
-String sendDataChatID;
-bool sendData = true;
+std::set<String> sendDataChatIDs;
 
 ImuArduino imu;
 MicArduino mic(MIC_PIN);
@@ -71,7 +71,7 @@ void newMsg(FB_msg &msg)
 
 	if (msg.text == "/data")
 	{
-		sendDataChatID = msg.chatID;
+		sendDataChatIDs.insert(msg.chatID);
 		bot.sendMessage("Теперь сообщения с данными будут отправляться в этот чат", msg.chatID);
 	}
 }
@@ -92,26 +92,38 @@ String serializeCsv(BufferItems &items) {
 	String s = "timestamp,accX(m/s^2),accY,accZ,gyroX(rad/s),gyroY,gyroZ,mic\n";
 	for (int i = 0; i < items.size; i++) {
 		BufferItem item = items.items_[i];
-		s += item.timestamp + ",";
-		s += item.imu.acc.x + ",";
-		s += item.imu.acc.y + ",";
-		s += item.imu.acc.z + ",";
-		s += item.imu.gyro.x + ",";
-		s += item.imu.gyro.y + ",";
-		s += item.imu.gyro.z + ",";
-		s += item.mic.value;
+		s += String(item.timestamp) + ",";
+		s += String(item.imu.acc.x) + ",";
+		s += String(item.imu.acc.y) + ",";
+		s += String(item.imu.acc.z) + ",";
+		s += String(item.imu.gyro.x) + ",";
+		s += String(item.imu.gyro.y) + ",";
+		s += String(item.imu.gyro.z) + ",";
+		s += String(item.mic.value);
 		s += "\n";
 	}
 	return s;
 }
 
+bool needSendData() {
+	return !sendDataChatIDs.empty();
+}
+
+String getChatIDs() {
+	String result;
+	for (auto id : sendDataChatIDs) {
+		result = result + "," + id;
+	}
+	return result.substring(1);
+}
+
 void sendItems(BufferItems &items) {
-	if (!sendData)
+	if (!needSendData())
 		return;
 
 	String str = serializeCsv(items);
 	uint8_t *s = (uint8_t*)str.c_str();
-	uint8_t status = bot.sendFile(s, str.length(), FB_DOC, millis() + ".csv");
+	uint8_t status = bot.sendFile(s, str.length(), FB_DOC, millis() + ".csv", getChatIDs());
 
 	if (status != 0) {
 		Serial.println("Got fail status" + status);
