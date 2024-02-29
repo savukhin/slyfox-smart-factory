@@ -1,0 +1,13 @@
+.my-input {
+    display: flex;
+    flex-direction: column;
+
+    span {
+        text-align: left;
+        margin-bottom: 0.3em;
+    }
+
+    input {
+        margin-top: 0;
+    }
+}
