@@ -8,6 +8,7 @@
 #include "imu_data.hpp"
 #include "mic_data.hpp"
 
+#include <inttypes.h>
 #include <cstring>
 #include <utility>
 
@@ -55,9 +56,16 @@ private:
     size_t current_ = 0;
 
     BufferItems copyItems() {
+        // Serial.printf("free space %d and sizeof new is %d", heap_caps_get_free_size(MALLOC_CAP_DEFAULT), sizeof(BufferItem) * current_);
         BufferItem *result = new BufferItem[current_];
+        // Serial.printf("free space after new %d", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
         // Serial.printf(" memcpy");
-        memcpy(result, items_, current_);
+        // Serial.printf("mic befor memcpy %" PRId64 " %" PRId64 " %d\n", result[0].mic.value, items_[0].mic.value, current_);
+        // Serial.printf("mic befor memcpy %" PRId64 " %" PRId64 "\n", result[current_-1].mic.value, items_[current_-1].mic.value);
+        memcpy(result, items_, sizeof(BufferItem) * current_);
+        // Serial.printf("mic after memcpy %" PRId64 " %" PRId64 "\n", result[0].mic.value, items_[0].mic.value);
+        // Serial.printf("mic after memcpy %" PRId64 " %" PRId64 "\n", result[current_-1].mic.value, items_[current_-1].mic.value);
+
         // Serial.printf(" memcped");
         return BufferItems(result, current_);
     }
@@ -72,25 +80,44 @@ public:
     }
 
     void recreate() {
-        if (this->items_ != nullptr)
-            delete[] this->items_;
-        this->items_ = new BufferItem[size_];
+        // Serial.printf("Before delete free space %d and sizeof new is %d\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT), sizeof(BufferItem) * size_);
+        // if (this->items_ != nullptr)
+        //     delete[] this->items_;
+
+        // Serial.printf("Recreating free space %d and sizeof new is %d\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT), sizeof(BufferItem) * size_);
+        // this->items_ = new BufferItem[size_];
+        if (this->items_ == nullptr)
+            this->items_ = new BufferItem[size_];
+        // Serial.println("recreated");
         this->current_ = 0;
     }
 
     size_t size() { return current_; }
+    size_t maxsize() { return size_; }
 
-     BufferItems insert(ImuData &imu, MicData &mic) {
+    BufferItems insert(ImuData &imu, MicData &mic) {
         BufferItem item{imu, mic};
-        items_[current_++] = item;
         if (current_ < size_)
-            return BufferItems{nullptr, 0};
+            items_[current_++] = item;
+        // if (current_ < size_)
+        //     return BufferItems{nullptr, 0};
         // Serial.printf("copying ");
-        BufferItems copy = this->copyItems();
+        // BufferItems copy = this->copyItems();
         // Serial.printf(" recreating");
-        recreate();
+        // Serial.printf("mic after copy %" PRId64 "\n", copy.items_[current_-1].mic.value);
+
+        // recreate();
         // Serial.printf(" recreated");
-        return copy;
+        // return copy;
+        return BufferItems{nullptr, 0};
+    }
+
+    BufferItem get(size_t ind) {
+        return items_[ind];
+    }
+
+    BufferItem getLast() {
+        return this->items_[current_];
     }
 
 };

@@ -21,7 +21,7 @@ std::set<String> sendDataChatIDs;
 // MicArduino mic(MIC_PIN);
 ImuStub imu;
 MicStub mic;
-Buffer buffer(100);
+Buffer buffer(500);
 
 void connectWiFi()
 {
@@ -98,6 +98,8 @@ String serializeCsv(BufferItems &items) {
 	String s = "timestamp,accX(m/s^2),accY,accZ,gyroX(rad/s),gyroY,gyroZ,mic\n";
 	for (int i = 0; i < items.size; i++) {
 		BufferItem item = items.items_[i];
+	// for (auto item = items.begin(); item != items.end(); item++) {
+	// for (auto item : items) {
 		s += String(item.timestamp) + ",";
 		s += String(item.imu.acc.x) + ",";
 		s += String(item.imu.acc.y) + ",";
@@ -107,7 +109,30 @@ String serializeCsv(BufferItems &items) {
 		s += String(item.imu.gyro.z) + ",";
 		s += String(item.mic.value);
 		s += "\n";
+		// Serial.printf("mic value is %ld\n", items.items_[i].mic.value);
 	}
+	// Serial.printf("mic value is %ld\n", items.items_[0].mic.value);
+	return s;
+}
+
+String serializeCsv(Buffer &items) {
+	String s = "timestamp,accX(m/s^2),accY,accZ,gyroX(rad/s),gyroY,gyroZ,mic\n";
+	for (int i = 0; i < items.size(); i++) {
+		BufferItem item = items.get(i);
+	// for (auto item = items.begin(); item != items.end(); item++) {
+	// for (auto item : items) {
+		s += String(item.timestamp) + ",";
+		s += String(item.imu.acc.x) + ",";
+		s += String(item.imu.acc.y) + ",";
+		s += String(item.imu.acc.z) + ",";
+		s += String(item.imu.gyro.x) + ",";
+		s += String(item.imu.gyro.y) + ",";
+		s += String(item.imu.gyro.z) + ",";
+		s += String(item.mic.value);
+		s += "\n";
+		// Serial.printf("mic value is %ld\n", items.items_[i].mic.value);
+	}
+	// Serial.printf("mic value is %ld\n", items.items_[0].mic.value);
 	return s;
 }
 
@@ -140,17 +165,41 @@ void sendItems(BufferItems &items) {
 	}
 }
 
+void sendItems(Buffer &items) {
+	// Serial.println("send items");
+	if (!needSendData())
+		return;
+
+	String str = serializeCsv(items);
+	uint8_t *s = (uint8_t*)str.c_str();
+	uint8_t status = bot.sendFile(s, str.length(), FB_DOC, String(millis()) + ".csv", getChatIDs());
+
+	if (status != 1) {
+		Serial.printf("Got fail status %d", status);
+	}
+}
+
 void loop()
 {
 	bot.tick();
 	// Serial.printf("loop %d! %d\n", buffer.size(), WiFi.status());
 	ImuData imuData = imu.GetData();
 	MicData micData = mic.GetData();
-	BufferItems flushedItems = buffer.insert(imuData, micData);
+	buffer.insert(imuData, micData);
 	// Serial.printf("if %d\t", flushedItems.size);
-	if (flushedItems.size == 0)
+	// if (flushedItems.size == 0)
+	// 	return;
+
+	if (buffer.size() < buffer.maxsize()) {
 		return;
+	}
+
+	// Serial.printf("mic %" PRId64 " %" PRId64 "\n", micData.value, flushedItems.items_[flushedItems.size - 1].mic.value);
 	
-	sendItems(flushedItems);
+	// Serial.println("s/endItems");
+	sendItems(buffer);
+	// Serial.println("Recreate");
+	buffer.recreate();
+	// sendItems(flushedItems);
 
 }
