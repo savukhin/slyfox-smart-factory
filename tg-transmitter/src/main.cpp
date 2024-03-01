@@ -40,15 +40,16 @@ void connectWiFi()
 		if ((millis() - prev_connect) > 5000)
 			return;
 	}
+	Serial.println("Connected");
 }
 
 void stat_wifi()
 {
 	if (WiFi.status() != WL_CONNECTED)
 	{
-		digitalWrite(2, HIGH);
+		digitalWrite(LED_BUILTIN, HIGH);
 		delay(50);
-		digitalWrite(2, LOW);
+		digitalWrite(LED_BUILTIN, LOW);
 		delay(50);
 		time_notconnected = millis();
 	}
@@ -62,10 +63,10 @@ void stat_wifi()
 
 void newMsg(FB_msg &msg)
 {
+	Serial.println("got msg" + msg.text);
 	if (msg.unix < startUnix)
 		return;
 
-	Serial.println("got msg" + msg.text);
 	if (msg.text == "/hardreset")
 	{
 		bot.sendMessage("ПЕРЕЗАГРУЖАЮСЬ...", msg.chatID);
@@ -111,7 +112,10 @@ String serializeCsv(BufferItems &items) {
 }
 
 bool needSendData() {
+	// Serial.printf("needSendData");
+	// Serial.printf("sendDataChatIDs.empty %d\n", sendDataChatIDs.empty());
 	return !sendDataChatIDs.empty();
+	// return false;
 }
 
 String getChatIDs() {
@@ -123,25 +127,30 @@ String getChatIDs() {
 }
 
 void sendItems(BufferItems &items) {
+	// Serial.println("send items");
 	if (!needSendData())
 		return;
 
 	String str = serializeCsv(items);
 	uint8_t *s = (uint8_t*)str.c_str();
-	uint8_t status = bot.sendFile(s, str.length(), FB_DOC, millis() + ".csv", getChatIDs());
+	uint8_t status = bot.sendFile(s, str.length(), FB_DOC, String(millis()) + ".csv", getChatIDs());
 
-	if (status != 0) {
-		Serial.println("Got fail status" + status);
+	if (status != 1) {
+		Serial.printf("Got fail status %d", status);
 	}
 }
 
 void loop()
 {
+	bot.tick();
+	// Serial.printf("loop %d! %d\n", buffer.size(), WiFi.status());
 	ImuData imuData = imu.GetData();
 	MicData micData = mic.GetData();
 	BufferItems flushedItems = buffer.insert(imuData, micData);
+	// Serial.printf("if %d\t", flushedItems.size);
 	if (flushedItems.size == 0)
 		return;
 	
 	sendItems(flushedItems);
+
 }
