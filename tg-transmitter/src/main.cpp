@@ -5,6 +5,8 @@
 
 #include "imu_arduino.hpp"
 #include "mic_arduino.hpp"
+#include "imu_stub.hpp"
+#include "mic_stub.hpp"
 #include "buffer.hpp"
 
 FastBot bot(BOT_TOKEN);
@@ -15,8 +17,10 @@ uint32_t startUnix;
 uint32_t startUnixMillis;
 std::set<String> sendDataChatIDs;
 
-ImuArduino imu;
-MicArduino mic(MIC_PIN);
+// ImuArduino imu;
+// MicArduino mic(MIC_PIN);
+ImuStub imu;
+MicStub mic;
 Buffer buffer(100);
 
 void connectWiFi()
@@ -61,6 +65,7 @@ void newMsg(FB_msg &msg)
 	if (msg.unix < startUnix)
 		return;
 
+	Serial.println("got msg" + msg.text);
 	if (msg.text == "/hardreset")
 	{
 		bot.sendMessage("ПЕРЕЗАГРУЖАЮСЬ...", msg.chatID);
